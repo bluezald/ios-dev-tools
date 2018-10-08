@@ -11,6 +11,10 @@
 
 default_platform(:ios)
 
+appidentifier = "com.domain.App"
+appname = "App"
+appid = "0000000000"
+
 platform :ios do
   
   # Helper Methods
@@ -22,9 +26,9 @@ platform :ios do
   
   desc "Automatically fetch the valid provisioning profiles in development and for adhoc/appstore"
   lane :provisioning do
-    match(app_identifier: "com.domain.App", type: "development")
-    match(app_identifier: "com.domain.App", type: "appstore")
-    match(app_identifier: "com.domain.App", type: "adhoc")
+    match(app_identifier: "#{appidentifier}", type: "development")
+    match(app_identifier: "#{appidentifier}", type: "appstore")
+    match(app_identifier: "#{appidentifier}", type: "adhoc")
   end
   
   # Alpha Crashlytics Lane
@@ -36,13 +40,13 @@ platform :ios do
       bump_type: "patch"
     )
 
-    gym(scheme: 'App',
+    gym(scheme: '#{appname}',
         clean: true,
         configuration: 'Release',
         export_method: 'ad-hoc',
         export_options: {
                 provisioningProfiles: {
-                  "com.domain.App ": "match AdHoc com.domain.App"
+                  "#{appidentifier}": "match AdHoc #{appidentifier}"
                 }
               })
               
@@ -102,13 +106,13 @@ platform :ios do
         
     # Fabric generated this lane for deployment to Crashlytics Beta
     # set 'export_method' to 'ad-hoc' if your Crashlytics Beta distribution uses ad-hoc provisioning
-    gym(scheme: 'App',
+    gym(scheme: '#{appname}',
         clean: true,
         configuration: 'Release',
         export_method: 'ad-hoc',
         export_options: {
                 provisioningProfiles: {
-                  "com.domain.App ": "match AdHoc com.domain.App"
+                  "#{appidentifier}": "match AdHoc #{appidentifier}"
                 }
               })
 
@@ -142,8 +146,8 @@ platform :ios do
   lane :screens do
     screenshots
     
-    deliver(app: 0000000000, 
-            app_identifier: "com.domain.App", 
+    deliver(app: "#{appid}", 
+            app_identifier: "#{appidentifier}", 
             skip_metadata: true, 
             skip_binary_upload: true, 
             force: true)
@@ -152,8 +156,8 @@ platform :ios do
   desc "Uploads the metadata information in the iTunes Connect"
   lane :meta do
     
-    deliver(app: 0000000000, 
-            app_identifier: "com.domain.App", 
+    deliver(app: "#{appid}", 
+            app_identifier: "#{appidentifier}", 
             skip_screenshots: true, 
             skip_binary_upload: true, 
             force: true)
@@ -172,15 +176,15 @@ platform :ios do
     screens
     meta
 
-    match(app_identifier: "com.domain.App", type: "appstore")
-    gym(scheme: "App",
-        workspace: "App.xcworkspace",
+    match(app_identifier: "#{appidentifier}", type: "appstore")
+    gym(scheme: "#{appname}",
+        workspace: "#{appname}.xcworkspace",
         clean: true,
         configuration: "Release",
         export_method: 'app-store',
         export_options: {
                 provisioningProfiles: {
-                  "com.domain.App ": "match AppStore com.domain.App"
+                  "#{appidentifier}": "match AppStore #{appidentifier}"
                 }
               },
         include_bitcode: true)
