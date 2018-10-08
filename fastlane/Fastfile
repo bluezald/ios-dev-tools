@@ -1,0 +1,202 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+platform :ios do
+  
+  # Helper Methods
+  
+  def replace(filepath, regexp, *args, &block)
+    content = File.read(filepath).gsub(regexp, *args, &block)
+    File.open(filepath, 'wb') { |file| file.write(content) }
+  end
+  
+  desc "Automatically fetch the valid provisioning profiles in development and for adhoc/appstore"
+  lane :provisioning do
+    match(app_identifier: "com.domain.App", type: "development")
+    match(app_identifier: "com.domain.App", type: "appstore")
+    match(app_identifier: "com.domain.App", type: "adhoc")
+  end
+  
+  # Alpha Crashlytics Lane
+  desc "Deploys an Alpha build and updates the needed info for the project"
+  lane :alpha do |values|
+    
+    increment_build_number
+    increment_version_number(
+      bump_type: "patch"
+    )
+
+    gym(scheme: 'App',
+        clean: true,
+        configuration: 'Release',
+        export_method: 'ad-hoc',
+        export_options: {
+                provisioningProfiles: {
+                  "com.domain.App ": "match AdHoc com.domain.App"
+                }
+              })
+              
+    commits = changelog_from_git_commits(commits_count: 10,
+                                         pretty: "%s",
+                                         date_format: "short",
+                                         merge_commit_filtering: "exclude_merges")
+    
+    # add these notes to unreleased section in changelog.md
+    
+    replace('../CHANGELOG.md', /^## \[Unreleased\]/mi) do |match| 
+      "#{match} \n #{commits}"
+    end
+                                         
+    emails = values[:test_email] ? values[:test_email] : ['bacalso.vincent@gmail.com']
+    groups = values[:test_email] ? nil : nil
+
+    crashlytics(api_token: 'token',
+                build_secret: 'secret',
+                emails: emails,
+                groups: groups,
+                notes: commits,
+           notifications: true)                                     
+    
+    
+  end
+    
+  desc "Stamps the Unreleased section in the CHANGELOG.md with the current version and build number of the project"
+  lane :changelog do
+    
+    version = get_version_number
+    build = get_build_number
+    
+    stamp_changelog(
+      section_identifier: "#{version} (#{build})"
+    )
+    
+  end
+  
+    
+  # Beta Crashlytics Lane
+  desc "Deploys a beta build in Crashlytics, configured with limited emails"
+  lane :beta do |values|
+        
+    increment_build_number
+    increment_version_number(
+      bump_type: "patch"
+    )
+    push_to_git_remote
+    
+    version = get_version_number
+    build = get_build_number
+    
+    add_git_tag(
+      tag: "#{version}-beta"
+    )
+        
+    # Fabric generated this lane for deployment to Crashlytics Beta
+    # set 'export_method' to 'ad-hoc' if your Crashlytics Beta distribution uses ad-hoc provisioning
+    gym(scheme: 'App',
+        clean: true,
+        configuration: 'Release',
+        export_method: 'ad-hoc',
+        export_options: {
+                provisioningProfiles: {
+                  "com.domain.App ": "match AdHoc com.domain.App"
+                }
+              })
+
+    emails = values[:test_email] ? values[:test_email] : ['bacalso.vincent@gmail.com']
+    groups = values[:test_email] ? nil : nil # You can define groups on the web and reference them here
+
+    changelog
+    
+    # Expected to have the current version in the changelog to read
+    notes = read_changelog(section_identifier: "\[#{version} (#{build})\]")
+    puts(notes)
+    
+    crashlytics(api_token: 'token',
+             build_secret: 'secret',
+                   emails: emails,
+                   groups: groups,
+                    notes: notes,
+            notifications: true)
+
+  end
+
+  # Screenshots Lane
+  desc "Runs the App in simulator and calls the mock methods to display demo views for the app store screenshots"
+  lane :screenshots do
+    reset_simulators
+    snapshot 
+    # frameit(white: true)
+  end
+
+  desc "Runs the screenshots lane and upload these screens to app store"
+  lane :screens do
+    screenshots
+    
+    deliver(app: 0000000000, 
+            app_identifier: "com.domain.App", 
+            skip_metadata: true, 
+            skip_binary_upload: true, 
+            force: true)
+  end
+
+  desc "Uploads the metadata information in the iTunes Connect"
+  lane :meta do
+    
+    deliver(app: 0000000000, 
+            app_identifier: "com.domain.App", 
+            skip_screenshots: true, 
+            skip_binary_upload: true, 
+            force: true)
+    
+  end
+  
+  # App Store Lane
+  desc "Gets the valid Appstore provisioning profile, builds the scheme in Release Configuration"
+  lane :deploy do
+    
+    # before proceeding here, you should be setting the project to a proper version
+    # and that you have push all to master as a release
+
+    ensure_git_branch(branch: "master")
+    certs
+    screens
+    meta
+
+    match(app_identifier: "com.domain.App", type: "appstore")
+    gym(scheme: "App",
+        workspace: "App.xcworkspace",
+        clean: true,
+        configuration: "Release",
+        export_method: 'app-store',
+        export_options: {
+                provisioningProfiles: {
+                  "com.domain.App ": "match AppStore com.domain.App"
+                }
+              },
+        include_bitcode: true)
+    deliver
+    
+    # cleanup
+    version = get_version_number
+    
+    add_git_tag(
+      tag: "#{version}-release"
+    )
+    push_git_tags
+    
+    # prepare a section in changelog for version
+    changelog
+    
+  end
+
+end
