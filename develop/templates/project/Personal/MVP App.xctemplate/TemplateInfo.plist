@@ -24,20 +24,6 @@
 			<string>languageChoice</string>
 			<key>Units</key>
 			<dict>
-				<key>Objective-C</key>
-				<dict>
-					<key>Nodes</key>
-					<array>
-						<string>ViewController.h:comments</string>
-						<string>ViewController.h:imports:importCocoa</string>
-						<string>ViewController.h:interface(___FILEBASENAME___ : UIViewController)</string>
-						<string>ViewController.m:comments</string>
-						<string>ViewController.m:imports:importHeader:ViewController.h</string>
-						<string>ViewController.m:extension</string>
-						<string>ViewController.m:implementation:methods:viewDidLoad(- (void\)viewDidLoad)</string>
-						<string>ViewController.m:implementation:methods:viewDidLoad:super</string>
-					</array>
-				</dict>
 				<key>Swift</key>
 				<dict>
 					<key>Nodes</key>
@@ -50,6 +36,18 @@
 					</array>
 				</dict>
 			</dict>
+		</dict>
+		<dict>
+			<key>Identifier</key>
+			<string>includePods</string>
+			<key>Name</key>
+			<string>Include common Pods in the project</string>
+			<key>Description</key>
+			<string>You need to pod install after creating the project</string>
+			<key>Type</key>
+			<string>checkbox</string>
+			<key>Default</key>
+			<string>true</string>
 		</dict>
 	</array>
 	<key>Definitions</key>
