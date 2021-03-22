@@ -15,6 +15,7 @@ Compilation of scripts and tools that are use along side in my iOS development w
  - file templates
  - Sources:
    - https://swiftui.devindex.xyz/
+   - https://thoughtbot.com/blog/let-s-setup-your-ios-environments
 
 ## deploy
  - for deployment tools
